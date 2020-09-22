@@ -33,6 +33,7 @@
 namespace Tests\Smalot\PdfParser\Integration;
 
 use Exception;
+use Smalot\PdfParser\Document;
 use Smalot\PdfParser\Parser;
 use Smalot\PdfParser\XObject\Image;
 use Tests\Smalot\PdfParser\TestCase;
@@ -90,5 +91,46 @@ class ParserTest extends TestCase
 
         $this->assertEquals(Image::class, \get_class($document->getObjectById('128_0')));
         $this->assertStringContainsString('4 von 4', $document->getText());
+    }
+
+    public function docProvider()
+    {
+        return [
+            'adobe-compressed-pdf16.pdf' => ['adobe-compressed-pdf16.pdf'],
+            'adobe-converted-pdf16.pdf' => ['adobe-converted-pdf16.pdf'],
+            'google-docs-export-pdf15.pdf' => ['google-docs-export-pdf15.pdf'],
+        ];
+    }
+
+    /**
+     * @dataProvider docProvider
+     */
+    public function testParserForDifferentSource($testDoc)
+    {
+        $filename = $this->rootDir."/samples/$testDoc";
+
+        /** @var Document $document */
+        $document = $this->fixture->parseFile($filename);
+
+        $this->assertStringContainsString('Test document', $document->getText());
+        $this->assertStringContainsString('Test mono', $document->getText());
+
+        $i = 0;
+        foreach ($document->getObjects() as $object) {
+            if (Image::class === \get_class($object)) {
+                ++$i;
+            }
+        }
+        $this->assertEquals(1, $i, 'Asserting has exactly one image');
+    }
+
+    public function testIssue201()
+    {
+        $filename = $this->rootDir.'/samples/bugs/issue201.pdf';
+
+        /** @var Document $document */
+        $document = $this->fixture->parseFile($filename);
+
+        $this->assertStringContainsString('The pdf995 suite of products', $document->getText());
     }
 }
